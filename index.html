@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#050505">
     
-    <title>1080Pi</title>
+    <title>1080Pi App</title>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Rowdies:wght@400&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #050505; --card: #121212; --gold: #f5c518; --red: #e50914; --blue: #0071ad; }
@@ -30,7 +30,7 @@
         }
 
         .btn-refresh { 
-            position: fixed; top: 15px; right: 5px; width: 30px; height: 30px; 
+            position: fixed; top: 15px; right: 5px; width: 25px; height: 25px; 
             background: var(--gold); border: none; border-radius: 50%; z-index: 9999;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
             cursor: pointer;
@@ -46,12 +46,14 @@
         }
         .btn-top.show { opacity: 1; visibility: visible; }
 
-        /* BARRA ALFABETICA TRASPARENTE */
+        /* BARRA ALFABETICA TRASPARENTE E CENTRATA */
         .alphabet-container {
-            position: fixed; bottom: 55px; left: 0; width: 100%; height: 60px;
-            background: transparent; /* Sfondo rimosso */
+            position: fixed; bottom: 55px; left: 50%; transform: translateX(-50%); 
+            width: 100%; max-width: 600px; height: 60px;
+            background: transparent; /* Completamente trasparente */
+            backdrop-filter: blur(5px); /* Leggero blur per leggibilità */
             z-index: 9998; display: flex; align-items: center;
-            pointer-events: none; /* Permette di cliccare ciò che sta sotto se non sulle lettere */
+            border-radius: 30px;
         }
 
         .alphabet-scroll {
@@ -59,25 +61,25 @@
             width: 100%; height: 100%; align-items: center;
             padding: 0 45%; 
             scrollbar-width: none; -ms-overflow-style: none;
-            pointer-events: auto; /* Riattiva i click per le lettere */
-            cursor: grab; /* Indica che si può trascinare */
+            cursor: grab; /* Indica che è trascinabile su desktop */
         }
         .alphabet-scroll:active { cursor: grabbing; }
         .alphabet-scroll::-webkit-scrollbar { display: none; }
 
         .alphabet-scroll a {
             scroll-snap-align: center;
-            min-width: 50px; text-align: center;
-            color: rgba(255,255,255,0.4); text-decoration: none; font-family: 'Oswald';
+            min-width: 40px; text-align: center;
+            color: rgba(255,255,255,0.5); text-decoration: none; font-family: 'Oswald';
             font-size: 18px; font-weight: bold; transition: all 0.2s ease;
             display: flex; align-items: center; justify-content: center;
-            user-select: none; /* Evita selezione testo durante il drag */
+            user-select: none; /* Impedisce la selezione del testo durante il drag */
         }
 
         .alphabet-scroll a.active {
             color: var(--gold);
             transform: scale(2.2);
-            text-shadow: 0 0 15px rgba(245, 197, 24, 0.6);
+            margin: 0 15px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
         /* BARRA DI RICERCA */
@@ -90,7 +92,7 @@
         #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 5px; font-size: 0.85rem; text-transform: uppercase; }
 
         /* Griglia */
-        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 130px 10px; }
+        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 150px 10px; }
         @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
 
         .movie-card { 
@@ -213,6 +215,7 @@
             const a = document.createElement('a');
             a.href = `#letter-${letter}`;
             a.innerText = letter;
+            a.id = `nav-${letter}`;
             a.onclick = (e) => {
                 e.preventDefault();
                 const target = document.getElementById(`letter-${letter}`);
@@ -223,13 +226,16 @@
 
         const rows = raw.split(/\r?\n/).filter(r => r.trim() !== "");
         let movies = [];
+        
         rows.forEach((row, i) => {
             if (i === 0) return;
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
             if (cols.length >= 2) {
                 movies.push({
-                    title: fixArticle(cols[1]), year: cols[2] || "", dur: formatDuration(cols[3]), 
-                    dim: cols[4] || "0", res: cols[5] || "", hd: cols[7] || "", img: cols[8] || "", link: cols[9] || "#"
+                    title: fixArticle(cols[1]), 
+                    year: cols[2] || "", dur: formatDuration(cols[3]), 
+                    dim: cols[4] || "0", res: cols[5] || "", 
+                    hd: cols[7] || "", img: cols[8] || "", link: cols[9] || "#" 
                 });
             }
         });
@@ -240,7 +246,10 @@
             const letterId = isNaN(firstChar) ? firstChar : "0-9";
             const card = document.createElement('div');
             card.className = 'movie-card';
-            if (!assignedLetters.has(letterId)) { card.id = `letter-${letterId}`; assignedLetters.add(letterId); }
+            if (!assignedLetters.has(letterId)) {
+                card.id = `letter-${letterId}`;
+                assignedLetters.add(letterId);
+            }
             card.setAttribute('data-search', `${f.title} ${f.year} ${f.res} ${f.hd}`.toLowerCase());
             card.innerHTML = `
                 <a href="${f.link}" target="_blank" class="poster-link">
@@ -257,31 +266,38 @@
         });
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
 
-        // Scroll Logic
+        // LOGICA SCROLL & DRAG DESKTOP
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        alphaMenu.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - alphaMenu.offsetLeft;
+            scrollLeft = alphaMenu.scrollLeft;
+        });
+        alphaMenu.addEventListener('mouseleave', () => isDown = false);
+        alphaMenu.addEventListener('mouseup', () => isDown = false);
+        alphaMenu.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - alphaMenu.offsetLeft;
+            const walk = (x - startX) * 2; 
+            alphaMenu.scrollLeft = scrollLeft - walk;
+        });
+
         alphaMenu.addEventListener('scroll', () => {
             const links = alphaMenu.querySelectorAll('a');
             const menuCenter = alphaMenu.getBoundingClientRect().left + (alphaMenu.offsetWidth / 2);
+
             links.forEach(link => {
                 const rect = link.getBoundingClientRect();
                 const linkCenter = rect.left + rect.width / 2;
-                const dist = Math.abs(menuCenter - linkCenter);
-                if (dist < 40) link.classList.add('active'); else link.classList.remove('active');
+                const distance = Math.abs(menuCenter - linkCenter);
+                if (distance < 30) link.classList.add('active'); else link.classList.remove('active');
             });
         });
         alphaMenu.dispatchEvent(new Event('scroll'));
-
-        // DESKTOP DRAG SCROLL SUPPORT
-        let isDown = false; let startX; let scrollLeft;
-        alphaMenu.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - alphaMenu.offsetLeft; scrollLeft = alphaMenu.scrollLeft; });
-        alphaMenu.addEventListener('mouseleave', () => { isDown = false; });
-        alphaMenu.addEventListener('mouseup', () => { isDown = false; });
-        alphaMenu.addEventListener('mousemove', (e) => {
-            if(!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - alphaMenu.offsetLeft;
-            const walk = (x - startX) * 2;
-            alphaMenu.scrollLeft = scrollLeft - walk;
-        });
     }
 
     document.getElementById('searchInput').oninput = (e) => {
