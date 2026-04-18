@@ -46,42 +46,44 @@
             50% { transform: scale(1.15); filter: brightness(1.3); }
         }
 
-        /* DOCK CONTROLLI - SIMMETRIA CORRETTA */
+        /* DOCK CONTROLLI */
         .bottom-controls {
             position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
             display: inline-flex; align-items: center; justify-content: center;
             background: var(--glass); padding: 8px; border-radius: 50px; 
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255,255,255,0.1); z-index: 9999;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-action {
             width: 35px; height: 35px; background: var(--gold); border: none; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: 0.3s; flex-shrink: 0; margin: 0;
+            transition: 0.3s; flex-shrink: 0;
         }
         
         #backToTop { display: none; } 
         #backToTop.show { display: flex; margin-right: 10px; }
 
-        /* BARRA ALFABETICA ORIZZONTALE */
+        /* BARRA ALFABETICA */
         .alphabet-container {
             position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); 
             width: 100%; max-width: 600px; height: 50px;
             background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             z-index: 9998; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
+            overflow: hidden; /* Nascondiamo per gestire lo scroll via JS su desktop */
         }
         .alphabet-scroll {
             display: flex; overflow-x: auto; width: 100%; height: 100%; align-items: center;
             padding: 0 45%; scrollbar-width: none; -ms-overflow-style: none;
+            scroll-behavior: auto; /* Necessario per lo scroll fluido via mouse position */
         }
         .alphabet-scroll::-webkit-scrollbar { display: none; }
         .alphabet-scroll a {
             min-width: 40px; text-align: center; color: rgba(255,255,255,0.3); 
             text-decoration: none; font-family: 'Oswald'; font-size: 16px; font-weight: bold;
-            transition: 0.2s; white-space: nowrap; display: inline-block;
+            transition: color 0.2s, font-size 0.2s; white-space: nowrap; display: inline-block;
+            cursor: pointer;
         }
         .alphabet-scroll a.active { 
             color: var(--gold); font-size: 28px; transform: scale(1.1); margin: 0 15px; min-width: 60px; 
@@ -104,14 +106,11 @@
             overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; scroll-margin-top: 20px; 
         }
         .movie-card:hover { transform: translateY(-5px); border-color: var(--red); }
-
         .poster-link { width: 100%; height: 260px; display: block; background: #000; }
         .poster-img { width: 100%; height: 100%; object-fit: cover; }
-        
         .info { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .title-group { font-family: 'Oswald'; font-size: 0.95rem; color: #fff; }
         .dur-label { color: var(--gold); font-family: 'Oswald'; font-size: 0.8rem; display: block; }
-        
         .tags-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         .badge { padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; font-family: 'Oswald'; color: #fff; text-transform: uppercase; }
         .res-badge { background: var(--red); }
@@ -141,7 +140,7 @@
     </button>
 </div>
 
-<div class="alphabet-container">
+<div class="alphabet-container" id="alphaContainer">
     <div class="alphabet-scroll" id="alphabetMenu"></div>
 </div>
 
@@ -159,15 +158,6 @@
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTxeOe2GVH5Q0jvme7EaLmsX7aaIS4JQKkcykMrkXnICVExo__fgjeKwRgUDp8qw2T6OKrqoV6Ar-AI/pub?output=csv';
 
     window.onload = fetchData;
-
-    window.onscroll = function() {
-        const btn = document.getElementById("backToTop");
-        if (window.scrollY > 300) {
-            btn.classList.add("show");
-        } else {
-            btn.classList.remove("show");
-        }
-    };
 
     async function fetchData() {
         const loader = document.getElementById('loader');
@@ -195,7 +185,8 @@
         fullAlpha.forEach(letter => {
             const a = document.createElement('a');
             a.innerText = letter;
-            a.onclick = () => {
+            a.onclick = (e) => {
+                e.preventDefault();
                 const target = document.getElementById(`letter-${letter}`);
                 if(target) target.scrollIntoView({behavior: "smooth"});
             };
@@ -222,14 +213,12 @@
         movies.sort((a, b) => a.title.localeCompare(b.title)).forEach(f => {
             const firstChar = f.title.charAt(0).toUpperCase();
             const letterId = isNaN(firstChar) ? firstChar : "0-9";
-            
             const card = document.createElement('div');
             card.className = 'movie-card';
             if (!assignedLetters.has(letterId)) {
                 card.id = `letter-${letterId}`;
                 assignedLetters.add(letterId);
             }
-            
             card.setAttribute('data-search', `${f.title} ${f.year} ${f.res}`.toLowerCase());
             card.innerHTML = `
                 <a href="${f.link}" target="_blank" class="poster-link">
@@ -252,8 +241,10 @@
         });
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
+        
+        // Attivazione scorrimento automatico al movimento del mouse
+        initHoverScroll(alphaMenu);
 
-        // Scroll Spy per la barra alfabetica
         alphaMenu.onscroll = () => {
             const links = alphaMenu.querySelectorAll('a');
             const center = alphaMenu.getBoundingClientRect().left + (alphaMenu.offsetWidth / 2);
@@ -264,6 +255,42 @@
             });
         };
         alphaMenu.dispatchEvent(new Event('scroll'));
+    }
+
+    // FUNZIONE PER SCORRIMENTO AL PASSAGGIO DEL MOUSE
+    function initHoverScroll(el) {
+        let scrollSpeed = 0;
+        let animationFrame;
+
+        const updateScroll = () => {
+            if (scrollSpeed !== 0) {
+                el.scrollLeft += scrollSpeed;
+            }
+            animationFrame = requestAnimationFrame(updateScroll);
+        };
+
+        el.addEventListener('mousemove', (e) => {
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left; // Posizione mouse dentro la barra
+            const width = rect.width;
+            const threshold = 100; // Zona di attivazione ai bordi (pixel)
+
+            if (x < threshold) {
+                // Verso sinistra: più vicino al bordo, più veloce
+                scrollSpeed = -((threshold - x) / threshold) * 10;
+            } else if (x > width - threshold) {
+                // Verso destra
+                scrollSpeed = ((x - (width - threshold)) / threshold) * 10;
+            } else {
+                scrollSpeed = 0;
+            }
+        });
+
+        el.addEventListener('mouseleave', () => {
+            scrollSpeed = 0;
+        });
+
+        updateScroll();
     }
 
     function fixArticle(title) {
@@ -291,6 +318,12 @@
             if (match) c++;
         });
         document.getElementById('counter').innerText = c + " TROVATI";
+    };
+
+    window.onscroll = function() {
+        const btn = document.getElementById("backToTop");
+        if (window.scrollY > 300) btn.classList.add("show");
+        else btn.classList.remove("show");
     };
 </script>
 </body>
