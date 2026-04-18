@@ -29,31 +29,30 @@
             50% { transform: scale(1.15); filter: brightness(1.3); }
         }
 
-        /* CONTROLLI IN BASSO DINAMICI */
+        /* CONTROLLI IN BASSO DINAMICI E CENTRATI */
         .bottom-controls {
             position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; z-index: 9999; align-items: center; justify-content: center;
-            background: var(--glass); padding: 6px 10px; border-radius: 30px; 
+            display: flex; gap: 0; z-index: 9999; align-items: center; justify-content: center;
+            background: var(--glass); padding: 6px; border-radius: 30px; 
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255,255,255,0.1);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            min-width: 50px;
         }
 
         .btn-action {
             width: 30px; height: 30px; background: var(--gold); border: none; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: 0.3s; flex-shrink: 0;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s; flex-shrink: 0; margin: 0 4px;
         }
         
+        /* TASTO TORNA SU (GESTIONE SPAZIO) */
         #backToTop { 
-            width: 0; opacity: 0; visibility: hidden; margin-right: -10px; overflow: hidden;
-            background: #fff; /* Colore diverso per distinguerlo */
+            width: 0; opacity: 0; visibility: hidden; margin: 0; transform: scale(0);
         }
         
         #backToTop.show { 
-            width: 30px; opacity: 1; visibility: visible; margin-right: 0;
+            width: 30px; opacity: 1; visibility: visible; margin: 0 4px; transform: scale(1);
         }
 
         /* BARRA ALFABETICA ALTEZZA 50PX */
@@ -73,9 +72,11 @@
         .alphabet-scroll::-webkit-scrollbar { display: none; }
         
         .alphabet-scroll a {
-            scroll-snap-align: center; min-width: 35px; text-align: center;
+            scroll-snap-align: center; min-width: 40px; text-align: center;
             color: rgba(255,255,255,0.3); text-decoration: none; font-family: 'Oswald';
             font-size: 16px; font-weight: bold; transition: 0.2s;
+            white-space: nowrap; /* Impedisce a 0-9 di andare a capo */
+            display: inline-block;
         }
         
         /* LETTERE ATTIVE 30PX */
@@ -83,7 +84,8 @@
             color: var(--gold); 
             font-size: 30px; 
             transform: scale(1.1);
-            margin: 0 10px; 
+            margin: 0 15px; 
+            min-width: 60px; /* Assicura spazio per lo 0-9 ingrandito */
         }
 
         /* RICERCA */
@@ -179,25 +181,6 @@
         }
     };
 
-    function fixArticle(title) {
-        if (!title) return "";
-        const match = title.match(/\[(.*?)\]/);
-        if (match) {
-            const article = match[1].trim();
-            let cleanTitle = title.replace(match[0], '').trim();
-            return (article.endsWith("'") ? article + cleanTitle : article + " " + cleanTitle);
-        }
-        return title;
-    }
-
-    function formatDuration(minutes) {
-        const m = parseInt(minutes);
-        if (isNaN(m) || m === 0) return "";
-        const h = Math.floor(m / 60);
-        const mins = m % 60;
-        return h > 0 ? `${h}h ${mins}m` : `${mins}m`;
-    }
-
     function renderDatabase(raw) {
         const grid = document.getElementById('grid');
         const alphaMenu = document.getElementById('alphabetMenu');
@@ -217,6 +200,7 @@
             alphaMenu.appendChild(a);
         });
 
+        // Parser CSV semplice e renderizzazione (come nel tuo codice originale)
         const rows = raw.split(/\r?\n/).filter(r => r.trim() !== "");
         let movies = [];
         
@@ -270,6 +254,26 @@
             });
         });
         alphaMenu.dispatchEvent(new Event('scroll'));
+    }
+
+    // Helper Functions
+    function fixArticle(title) {
+        if (!title) return "";
+        const match = title.match(/\[(.*?)\]/);
+        if (match) {
+            const article = match[1].trim();
+            let cleanTitle = title.replace(match[0], '').trim();
+            return (article.endsWith("'") ? article + cleanTitle : article + " " + cleanTitle);
+        }
+        return title;
+    }
+
+    function formatDuration(minutes) {
+        const m = parseInt(minutes);
+        if (isNaN(m) || m === 0) return "";
+        const h = Math.floor(m / 60);
+        const mins = m % 60;
+        return h > 0 ? `${h}h ${mins}m` : `${mins}m`;
     }
 
     document.getElementById('searchInput').oninput = (e) => {
