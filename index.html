@@ -29,13 +29,34 @@
             50% { transform: scale(1.15); filter: brightness(1.3); }
         }
 
+         /* Pulsante Aggiorna - DIMENSIONI RIDOTTE */
+        .btn-refresh { 
+            position: fixed; top: 15px; right: 5px; width: 30px; height: 30px; 
+            background: var(--gold); border: none; border-radius: 50%; z-index: 9999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+    
+
+        }
+
+        /* TASTO TORNA SU */
+        .btn-top {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            width: 35px; height: 35px; background: var(--gold); border: none; border-radius: 50%;
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            opacity: 0; visibility: hidden; transition: 0.3s;
+        }
+        .btn-top.show { opacity: 1; visibility: visible; }
+
         /* BARRA ALFABETICA TRASPARENTE E CENTRATA */
         .alphabet-container {
-            position: fixed; bottom: 65px; left: 50%; transform: translateX(-50%); 
+            position: fixed; bottom: 55px; left: 50%; transform: translateX(-50%); 
             width: 100%; max-width: 600px; height: 60px;
-            background: transparent;
-            backdrop-filter: blur(5px);
+            background: transparent; /* Completamente trasparente */
+            backdrop-filter: blur(5px); /* Leggero blur per leggibilità */
             z-index: 9998; display: flex; align-items: center;
+            border-radius: 30px;
         }
 
         .alphabet-scroll {
@@ -43,7 +64,7 @@
             width: 100%; height: 100%; align-items: center;
             padding: 0 45%; 
             scrollbar-width: none; -ms-overflow-style: none;
-            cursor: grab;
+            cursor: grab; /* Indica che è trascinabile su desktop */
         }
         .alphabet-scroll:active { cursor: grabbing; }
         .alphabet-scroll::-webkit-scrollbar { display: none; }
@@ -54,7 +75,7 @@
             color: rgba(255,255,255,0.5); text-decoration: none; font-family: 'Oswald';
             font-size: 18px; font-weight: bold; transition: all 0.2s ease;
             display: flex; align-items: center; justify-content: center;
-            user-select: none;
+            user-select: none; /* Impedisce la selezione del testo durante il drag */
         }
 
         .alphabet-scroll a.active {
@@ -63,22 +84,6 @@
             margin: 0 15px;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
-
-        /* CONTROLLI IN BASSO (TORNA SU + AGGIORNA) */
-        .bottom-controls {
-            position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; z-index: 9999; align-items: center;
-        }
-
-        .btn-action {
-            width: 40px; height: 40px; background: var(--gold); border: none; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: 0.3s;
-        }
-
-        #backToTop { opacity: 0; visibility: hidden; }
-        #backToTop.show { opacity: 1; visibility: visible; }
 
         /* BARRA DI RICERCA */
         .controls { width: 100%; max-width: 280px; margin: 10px auto; text-align: center; }
@@ -90,7 +95,7 @@
         #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 5px; font-size: 0.85rem; text-transform: uppercase; }
 
         /* Griglia */
-        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 140px 10px; }
+        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 150px 10px; }
         @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
 
         .movie-card { 
@@ -126,22 +131,21 @@
     <p style="color: var(--gold); font-family: 'Oswald'; margin-top: 15px;">SINCRONIZZAZIONE...</p>
 </div>
 
+<button class="btn-refresh" onclick="fetchData()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+</button>
+
 <div class="alphabet-container">
     <div class="alphabet-scroll" id="alphabetMenu"></div>
 </div>
 
-<div class="bottom-controls">
-    <button id="backToTop" class="btn-action" onclick="window.scrollTo(0,0)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 15l-6-6-6 6"></path>
-        </svg>
-    </button>
-    <button id="refreshBtn" class="btn-action" onclick="fetchData()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-    </button>
-</div>
+<button id="backToTop" class="btn-top" onclick="window.scrollTo(0,0)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 15l-6-6-6 6"></path>
+    </svg>
+</button>
 
 <div class="header">
     <h1>1080P<span>i</span></h1>
@@ -167,14 +171,11 @@
         }
     };
 
-    // FUNZIONE AGGIORNA GLOBALE
-    window.fetchData = async function() {
+    async function fetchData() {
         const loader = document.getElementById('loader');
         loader.style.display = 'flex';
-        loader.style.opacity = '1';
         try {
-            // Cache buster per forzare l'aggiornamento reale dal server
-            const response = await fetch(CSV_URL + '&t=' + new Date().getTime());
+            const response = await fetch(CSV_URL);
             const data = await response.text();
             renderDatabase(data);
             setTimeout(() => { 
@@ -268,27 +269,35 @@
         });
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
 
-        // GESTIONE DRAG E SNAP SIDEBAR
-        let isDown = false, startX, scrollLeft;
-        alphaMenu.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - alphaMenu.offsetLeft; scrollLeft = alphaMenu.scrollLeft; });
+        // LOGICA SCROLL & DRAG DESKTOP
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        alphaMenu.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - alphaMenu.offsetLeft;
+            scrollLeft = alphaMenu.scrollLeft;
+        });
         alphaMenu.addEventListener('mouseleave', () => isDown = false);
         alphaMenu.addEventListener('mouseup', () => isDown = false);
         alphaMenu.addEventListener('mousemove', (e) => {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - alphaMenu.offsetLeft;
-            const walk = (x - startX) * 2;
+            const walk = (x - startX) * 2; 
             alphaMenu.scrollLeft = scrollLeft - walk;
         });
 
         alphaMenu.addEventListener('scroll', () => {
             const links = alphaMenu.querySelectorAll('a');
             const menuCenter = alphaMenu.getBoundingClientRect().left + (alphaMenu.offsetWidth / 2);
+
             links.forEach(link => {
                 const rect = link.getBoundingClientRect();
                 const linkCenter = rect.left + rect.width / 2;
-                if (Math.abs(menuCenter - linkCenter) < 30) link.classList.add('active'); 
-                else link.classList.remove('active');
+                const distance = Math.abs(menuCenter - linkCenter);
+                if (distance < 30) link.classList.add('active'); else link.classList.remove('active');
             });
         });
         alphaMenu.dispatchEvent(new Event('scroll'));
