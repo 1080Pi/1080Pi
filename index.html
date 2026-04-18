@@ -19,6 +19,8 @@
             --glass: rgba(255, 255, 255, 0.1); 
         }
 
+        * { box-sizing: border-box; } /* Previene problemi di larghezza con padding */
+
         body { 
             background: var(--bg); 
             color: #fff; 
@@ -31,7 +33,14 @@
         }
         
         /* HEADER */
-        .header { display: flex; flex-direction: column; align-items: center; padding: 15px 10px 5px 10px; }
+        .header { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 15px 20px 5px 20px; /* Aumentato padding laterale */
+            width: 100%;
+        }
+
         h1 { 
             margin: 0; font-family: 'Oswald', sans-serif; 
             font-size: 10vw; color: var(--red); text-transform: uppercase; 
@@ -68,34 +77,72 @@
         /* BARRA ALFABETICA */
         .alphabet-container {
             position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); 
-            width: 100%; max-width: 600px; height: 50px;
+            width: 100%; max-width: 600px; height: 60px; /* Leggermente più alta per accomodare lettere grandi */
             background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             z-index: 9998; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
-            overflow: hidden; /* Nascondiamo per gestire lo scroll via JS su desktop */
+            overflow: hidden;
         }
+
         .alphabet-scroll {
-            display: flex; overflow-x: auto; width: 100%; height: 100%; align-items: center;
-            padding: 0 45%; scrollbar-width: none; -ms-overflow-style: none;
-            scroll-behavior: auto; /* Necessario per lo scroll fluido via mouse position */
+            display: flex; 
+            overflow-x: auto; 
+            width: 100%; 
+            height: 100%; 
+            align-items: center;
+            padding: 0 50%; /* Padding al 50% per permettere alla prima e ultima lettera di centrarsi */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            scroll-snap-type: x mandatory; /* Effetto calamita */
         }
+
         .alphabet-scroll::-webkit-scrollbar { display: none; }
+
         .alphabet-scroll a {
-            min-width: 40px; text-align: center; color: rgba(255,255,255,0.3); 
-            text-decoration: none; font-family: 'Oswald'; font-size: 16px; font-weight: bold;
-            transition: color 0.2s, font-size 0.2s; white-space: nowrap; display: inline-block;
+            min-width: 45px; 
+            text-align: center; 
+            color: rgba(255,255,255,0.3); 
+            text-decoration: none; 
+            font-family: 'Oswald'; 
+            font-size: 16px; 
+            font-weight: bold;
+            transition: all 0.2s ease; 
+            white-space: nowrap; 
+            display: inline-block;
             cursor: pointer;
+            scroll-snap-align: center; /* Forza la lettera al centro della barra */
         }
+
         .alphabet-scroll a.active { 
-            color: var(--gold); font-size: 28px; transform: scale(1.1); margin: 0 15px; min-width: 60px; 
+            color: var(--gold); 
+            font-size: 32px; 
+            transform: scale(1.2); 
+            margin: 0 10px; 
+            min-width: 60px; 
         }
 
         /* RICERCA */
-        .controls { width: 100%; max-width: 280px; margin: 10px auto; text-align: center; }
-        #searchInput { 
-            width: 100%; padding: 10px 15px; border-radius: 25px; 
-            border: 1px solid #444; background: #111; color: #fff; text-align: center; outline: none;
+        .controls { 
+            width: 100%; 
+            max-width: 320px; /* Aumentato un po' */
+            margin: 10px auto; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 5px; font-size: 0.85rem; }
+
+        #searchInput { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border-radius: 25px; 
+            border: 1px solid #444; 
+            background: #111; 
+            color: #fff; 
+            text-align: center; 
+            outline: none;
+            font-size: 16px; /* Evita zoom automatico su iPhone */
+        }
+
+        #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 8px; font-size: 0.85rem; }
 
         /* GRIGLIA */
         .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 150px 10px; }
@@ -189,6 +236,8 @@
                 e.preventDefault();
                 const target = document.getElementById(`letter-${letter}`);
                 if(target) target.scrollIntoView({behavior: "smooth"});
+                // Centra la lettera cliccata nella barra
+                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             };
             alphaMenu.appendChild(a);
         });
@@ -242,7 +291,6 @@
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
         
-        // Attivazione scorrimento automatico al movimento del mouse
         initHoverScroll(alphaMenu);
 
         alphaMenu.onscroll = () => {
@@ -251,13 +299,14 @@
             links.forEach(a => {
                 const rect = a.getBoundingClientRect();
                 const dist = Math.abs(center - (rect.left + rect.width / 2));
-                a.classList.toggle('active', dist < 30);
+                // Ridotta la soglia per rendere l'attivazione più precisa al centro
+                a.classList.toggle('active', dist < 25);
             });
         };
-        alphaMenu.dispatchEvent(new Event('scroll'));
+        // Piccolo timeout per assicurarsi che il padding sia calcolato
+        setTimeout(() => alphaMenu.dispatchEvent(new Event('scroll')), 100);
     }
 
-    // FUNZIONE PER SCORRIMENTO AL PASSAGGIO DEL MOUSE
     function initHoverScroll(el) {
         let scrollSpeed = 0;
         let animationFrame;
@@ -271,25 +320,20 @@
 
         el.addEventListener('mousemove', (e) => {
             const rect = el.getBoundingClientRect();
-            const x = e.clientX - rect.left; // Posizione mouse dentro la barra
+            const x = e.clientX - rect.left;
             const width = rect.width;
-            const threshold = 100; // Zona di attivazione ai bordi (pixel)
+            const threshold = 100;
 
             if (x < threshold) {
-                // Verso sinistra: più vicino al bordo, più veloce
-                scrollSpeed = -((threshold - x) / threshold) * 10;
+                scrollSpeed = -((threshold - x) / threshold) * 15;
             } else if (x > width - threshold) {
-                // Verso destra
-                scrollSpeed = ((x - (width - threshold)) / threshold) * 10;
+                scrollSpeed = ((x - (width - threshold)) / threshold) * 15;
             } else {
                 scrollSpeed = 0;
             }
         });
 
-        el.addEventListener('mouseleave', () => {
-            scrollSpeed = 0;
-        });
-
+        el.addEventListener('mouseleave', () => { scrollSpeed = 0; });
         updateScroll();
     }
 
