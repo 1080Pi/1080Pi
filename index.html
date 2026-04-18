@@ -77,7 +77,7 @@
         /* BARRA ALFABETICA */
         .alphabet-container {
             position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); 
-            width: 100%; max-width: 600px; height: 70px; 
+            width: 100%; max-width: 600px; height: 75px; 
             background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             z-index: 9998; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
             overflow: hidden;
@@ -89,37 +89,37 @@
             width: 100%; 
             height: 100%; 
             align-items: center;
-            padding: 0 50%; 
+            padding: 0 50%; /* Padding per permettere il centraggio di A e Z */
             scrollbar-width: none; 
             -ms-overflow-style: none;
-            /* Rimosso scroll-snap per permettere lo scorrimento fluido via mouse */
+            scroll-snap-type: x mandatory; /* Calamita per fermarsi al centro */
         }
 
         .alphabet-scroll::-webkit-scrollbar { display: none; }
 
         .alphabet-scroll a {
-            min-width: 45px; 
+            min-width: 50px; 
             text-align: center; 
             color: rgba(255,255,255,0.3); 
             text-decoration: none; 
             font-family: 'Oswald'; 
-            font-size: 16px; 
+            font-size: 18px; 
             font-weight: bold;
-            transition: color 0.2s, font-size 0.2s, transform 0.2s; 
+            transition: all 0.2s ease; 
             white-space: nowrap; 
             display: inline-block;
             cursor: pointer;
+            scroll-snap-align: center; /* Punto di ancoraggio al centro */
         }
 
         .alphabet-scroll a.active { 
             color: var(--gold); 
-            font-size: 32px; 
+            font-size: 36px; 
             transform: scale(1.2); 
-            margin: 0 15px; 
-            min-width: 60px; 
+            margin: 0 20px; 
         }
 
-        /* RICERCA CENTRATA */
+        /* RICERCA */
         .controls { 
             width: 100%; 
             max-width: 320px; 
@@ -130,15 +130,9 @@
         }
 
         #searchInput { 
-            width: 100%; 
-            padding: 12px 15px; 
-            border-radius: 25px; 
-            border: 1px solid #444; 
-            background: #111; 
-            color: #fff; 
-            text-align: center; 
-            outline: none;
-            font-size: 16px;
+            width: 100%; padding: 12px 15px; border-radius: 25px; 
+            border: 1px solid #444; background: #111; color: #fff; 
+            text-align: center; outline: none; font-size: 16px;
         }
 
         #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 8px; font-size: 0.85rem; }
@@ -288,10 +282,9 @@
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
         
-        // Inizializza lo scorrimento hover per Desktop
         initHoverScroll(alphaMenu);
 
-        // Gestione attivazione lettera al centro
+        // Effetto lettera attiva centrata
         alphaMenu.addEventListener('scroll', () => {
             const links = alphaMenu.querySelectorAll('a');
             const menuRect = alphaMenu.getBoundingClientRect();
@@ -301,14 +294,20 @@
                 const rect = a.getBoundingClientRect();
                 const aCenter = rect.left + (rect.width / 2);
                 const dist = Math.abs(center - aCenter);
-                a.classList.toggle('active', dist < 25);
+                // Soglia di attivazione per la lettera gialla al centro
+                a.classList.toggle('active', dist < 30);
             });
+        });
+
+        // Abilita scorrimento orizzontale con rotellina mouse
+        alphaMenu.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            alphaMenu.scrollLeft += e.deltaY;
         });
 
         setTimeout(() => alphaMenu.dispatchEvent(new Event('scroll')), 100);
     }
 
-    // FUNZIONE DI SCORRIMENTO AL PASSAGGIO DEL MOUSE (DESKTOP)
     function initHoverScroll(el) {
         let scrollSpeed = 0;
         let animationFrame;
@@ -324,23 +323,18 @@
             const rect = el.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
-            const edgeSize = 120; // Area di attivazione ai lati
+            const edge = 100; // Pixel dai bordi per attivare scorrimento automatico
 
-            if (x < edgeSize) {
-                // Scorrimento a sinistra (più vicino al bordo = più veloce)
-                scrollSpeed = -((edgeSize - x) / edgeSize) * 12;
-            } else if (x > width - edgeSize) {
-                // Scorrimento a destra
-                scrollSpeed = ((x - (width - edgeSize)) / edgeSize) * 12;
+            if (x < edge) {
+                scrollSpeed = -((edge - x) / edge) * 15;
+            } else if (x > width - edge) {
+                scrollSpeed = ((x - (width - edge)) / edge) * 15;
             } else {
                 scrollSpeed = 0;
             }
         });
 
-        el.addEventListener('mouseleave', () => {
-            scrollSpeed = 0;
-        });
-
+        el.addEventListener('mouseleave', () => scrollSpeed = 0);
         animate();
     }
 
