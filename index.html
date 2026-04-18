@@ -81,7 +81,9 @@
             background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             z-index: 9998; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
             overflow: hidden;
+            cursor: grab;
         }
+        .alphabet-container:active { cursor: grabbing; }
 
         .alphabet-scroll {
             display: flex; 
@@ -93,6 +95,7 @@
             scrollbar-width: none; 
             -ms-overflow-style: none;
             scroll-snap-type: x mandatory;
+            pointer-events: auto;
         }
 
         .alphabet-scroll::-webkit-scrollbar { display: none; }
@@ -110,6 +113,7 @@
             display: inline-block;
             cursor: pointer;
             scroll-snap-align: center;
+            user-select: none;
         }
 
         .alphabet-scroll a.active { 
@@ -119,25 +123,7 @@
             margin: 0 20px; 
         }
 
-        /* RICERCA */
-        .controls { 
-            width: 100%; 
-            max-width: 320px; 
-            margin: 10px auto; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #searchInput { 
-            width: 100%; padding: 12px 15px; border-radius: 25px; 
-            border: 1px solid #444; background: #111; color: #fff; 
-            text-align: center; outline: none; font-size: 16px;
-        }
-
-        #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 8px; font-size: 0.85rem; }
-
-        /* GRIGLIA */
+        /* GRIGLIA E CARD */
         .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 150px 10px; }
         @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
 
@@ -237,10 +223,7 @@
                     const elementPosition = elementRect - bodyRect;
                     const offsetPosition = elementPosition - offset;
 
-                    window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
-                    });
+                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
                 }
                 updateActiveLetter(letter);
                 setTimeout(() => { isAutoScrolling = false; }, 1000);
@@ -248,6 +231,7 @@
             alphaMenu.appendChild(a);
         });
 
+        // Parsing CSV e rendering card (logica originale mantenuta)
         const rows = raw.split(/\r?\n/).filter(r => r.trim() !== "");
         let movies = [];
         let assignedLetters = new Set();
@@ -297,7 +281,7 @@
         });
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
-        initHoverScroll(alphaMenu);
+        initAlphabetInteractions(alphaMenu);
     }
 
     function updateActiveLetter(letter) {
@@ -315,43 +299,78 @@
 
     function syncAlphabetWithScroll() {
         if (isAutoScrolling) return;
-
         const anchors = document.querySelectorAll('.letter-anchor');
         let currentLetter = "";
-
         anchors.forEach(anchor => {
             const rect = anchor.getBoundingClientRect();
-            // Se la sezione è vicina alla parte superiore del viewport
-            if (rect.top <= 150) {
-                currentLetter = anchor.id.replace('letter-', '');
-            }
+            if (rect.top <= 150) currentLetter = anchor.id.replace('letter-', '');
         });
-
-        if (currentLetter) {
-            updateActiveLetter(currentLetter);
-        }
+        if (currentLetter) updateActiveLetter(currentLetter);
     }
 
-    function initHoverScroll(el) {
+    // NUOVA GESTIONE INTERAZIONI BARRA (HOVER + DRAG)
+    function initAlphabetInteractions(el) {
         let scrollSpeed = 0;
         let animationFrame;
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        // 1. Logica Hover (Scorrimento automatico ai bordi)
         const animate = () => {
-            if (scrollSpeed !== 0) el.scrollLeft += scrollSpeed;
+            if (scrollSpeed !== 0 && !isDown) {
+                el.scrollLeft += scrollSpeed;
+            }
             animationFrame = requestAnimationFrame(animate);
         };
+
         el.addEventListener('mousemove', (e) => {
+            if (isDown) return;
             const rect = el.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
-            const edge = 100;
-            if (x < edge) scrollSpeed = -((edge - x) / edge) * 15;
-            else if (x > width - edge) scrollSpeed = ((x - (width - edge)) / edge) * 15;
-            else scrollSpeed = 0;
+            const edgeThreshold = 80; // Zona di attivazione ai bordi
+
+            if (x < edgeThreshold) {
+                // Più vicino al bordo sinistro = più veloce
+                scrollSpeed = -((edgeThreshold - x) / edgeThreshold) * 12;
+            } else if (x > width - edgeThreshold) {
+                // Più vicino al bordo destro = più veloce
+                scrollSpeed = ((x - (width - edgeThreshold)) / edgeThreshold) * 12;
+            } else {
+                scrollSpeed = 0;
+            }
         });
-        el.addEventListener('mouseleave', () => scrollSpeed = 0);
+
+        el.addEventListener('mouseleave', () => {
+            scrollSpeed = 0;
+            isDown = false;
+        });
+
+        // 2. Logica Drag (Trascinamento con mouse)
+        el.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - el.offsetLeft;
+            scrollLeft = el.scrollLeft;
+            scrollSpeed = 0;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDown = false;
+        });
+
+        el.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - el.offsetLeft;
+            const walk = (x - startX) * 2; // Moltiplicatore velocità trascinamento
+            el.scrollLeft = scrollLeft - walk;
+        });
+
         animate();
     }
 
+    // Utility functions originali
     function fixArticle(title) {
         if (!title) return "";
         const match = title.match(/\[(.*?)\]/);
@@ -383,7 +402,6 @@
         const btn = document.getElementById("backToTop");
         if (window.scrollY > 300) btn.classList.add("show");
         else btn.classList.remove("show");
-        
         syncAlphabetWithScroll();
     };
 </script>
