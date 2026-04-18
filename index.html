@@ -19,7 +19,7 @@
             --glass: rgba(255, 255, 255, 0.1); 
         }
 
-        * { box-sizing: border-box; } /* Previene problemi di larghezza con padding */
+        * { box-sizing: border-box; }
 
         body { 
             background: var(--bg); 
@@ -37,7 +37,7 @@
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding: 15px 20px 5px 20px; /* Aumentato padding laterale */
+            padding: 15px 20px 5px 20px;
             width: 100%;
         }
 
@@ -77,7 +77,7 @@
         /* BARRA ALFABETICA */
         .alphabet-container {
             position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); 
-            width: 100%; max-width: 600px; height: 60px; /* Leggermente più alta per accomodare lettere grandi */
+            width: 100%; max-width: 600px; height: 70px; 
             background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             z-index: 9998; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
             overflow: hidden;
@@ -89,10 +89,10 @@
             width: 100%; 
             height: 100%; 
             align-items: center;
-            padding: 0 50%; /* Padding al 50% per permettere alla prima e ultima lettera di centrarsi */
+            padding: 0 50%; 
             scrollbar-width: none; 
             -ms-overflow-style: none;
-            scroll-snap-type: x mandatory; /* Effetto calamita */
+            /* Rimosso scroll-snap per permettere lo scorrimento fluido via mouse */
         }
 
         .alphabet-scroll::-webkit-scrollbar { display: none; }
@@ -105,25 +105,24 @@
             font-family: 'Oswald'; 
             font-size: 16px; 
             font-weight: bold;
-            transition: all 0.2s ease; 
+            transition: color 0.2s, font-size 0.2s, transform 0.2s; 
             white-space: nowrap; 
             display: inline-block;
             cursor: pointer;
-            scroll-snap-align: center; /* Forza la lettera al centro della barra */
         }
 
         .alphabet-scroll a.active { 
             color: var(--gold); 
             font-size: 32px; 
             transform: scale(1.2); 
-            margin: 0 10px; 
+            margin: 0 15px; 
             min-width: 60px; 
         }
 
-        /* RICERCA */
+        /* RICERCA CENTRATA */
         .controls { 
             width: 100%; 
-            max-width: 320px; /* Aumentato un po' */
+            max-width: 320px; 
             margin: 10px auto; 
             display: flex;
             flex-direction: column;
@@ -139,7 +138,7 @@
             color: #fff; 
             text-align: center; 
             outline: none;
-            font-size: 16px; /* Evita zoom automatico su iPhone */
+            font-size: 16px;
         }
 
         #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 8px; font-size: 0.85rem; }
@@ -165,7 +164,6 @@
         .hd-badge { background: var(--gold); color: #000; }
         .hidden { display: none !important; }
 
-        /* LOADER */
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
         .spinner { border: 4px solid #333; border-top: 4px solid var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -236,7 +234,6 @@
                 e.preventDefault();
                 const target = document.getElementById(`letter-${letter}`);
                 if(target) target.scrollIntoView({behavior: "smooth"});
-                // Centra la lettera cliccata nella barra
                 a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             };
             alphaMenu.appendChild(a);
@@ -291,50 +288,60 @@
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
         
+        // Inizializza lo scorrimento hover per Desktop
         initHoverScroll(alphaMenu);
 
-        alphaMenu.onscroll = () => {
+        // Gestione attivazione lettera al centro
+        alphaMenu.addEventListener('scroll', () => {
             const links = alphaMenu.querySelectorAll('a');
-            const center = alphaMenu.getBoundingClientRect().left + (alphaMenu.offsetWidth / 2);
+            const menuRect = alphaMenu.getBoundingClientRect();
+            const center = menuRect.left + (menuRect.width / 2);
+            
             links.forEach(a => {
                 const rect = a.getBoundingClientRect();
-                const dist = Math.abs(center - (rect.left + rect.width / 2));
-                // Ridotta la soglia per rendere l'attivazione più precisa al centro
+                const aCenter = rect.left + (rect.width / 2);
+                const dist = Math.abs(center - aCenter);
                 a.classList.toggle('active', dist < 25);
             });
-        };
-        // Piccolo timeout per assicurarsi che il padding sia calcolato
+        });
+
         setTimeout(() => alphaMenu.dispatchEvent(new Event('scroll')), 100);
     }
 
+    // FUNZIONE DI SCORRIMENTO AL PASSAGGIO DEL MOUSE (DESKTOP)
     function initHoverScroll(el) {
         let scrollSpeed = 0;
         let animationFrame;
 
-        const updateScroll = () => {
+        const animate = () => {
             if (scrollSpeed !== 0) {
                 el.scrollLeft += scrollSpeed;
             }
-            animationFrame = requestAnimationFrame(updateScroll);
+            animationFrame = requestAnimationFrame(animate);
         };
 
         el.addEventListener('mousemove', (e) => {
             const rect = el.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
-            const threshold = 100;
+            const edgeSize = 120; // Area di attivazione ai lati
 
-            if (x < threshold) {
-                scrollSpeed = -((threshold - x) / threshold) * 15;
-            } else if (x > width - threshold) {
-                scrollSpeed = ((x - (width - threshold)) / threshold) * 15;
+            if (x < edgeSize) {
+                // Scorrimento a sinistra (più vicino al bordo = più veloce)
+                scrollSpeed = -((edgeSize - x) / edgeSize) * 12;
+            } else if (x > width - edgeSize) {
+                // Scorrimento a destra
+                scrollSpeed = ((x - (width - edgeSize)) / edgeSize) * 12;
             } else {
                 scrollSpeed = 0;
             }
         });
 
-        el.addEventListener('mouseleave', () => { scrollSpeed = 0; });
-        updateScroll();
+        el.addEventListener('mouseleave', () => {
+            scrollSpeed = 0;
+        });
+
+        animate();
     }
 
     function fixArticle(title) {
