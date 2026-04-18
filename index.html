@@ -89,10 +89,10 @@
             width: 100%; 
             height: 100%; 
             align-items: center;
-            padding: 0 50%; /* Padding per permettere il centraggio di A e Z */
+            padding: 0 50%; 
             scrollbar-width: none; 
             -ms-overflow-style: none;
-            scroll-snap-type: x mandatory; /* Calamita per fermarsi al centro */
+            scroll-snap-type: x mandatory;
         }
 
         .alphabet-scroll::-webkit-scrollbar { display: none; }
@@ -109,7 +109,7 @@
             white-space: nowrap; 
             display: inline-block;
             cursor: pointer;
-            scroll-snap-align: center; /* Punto di ancoraggio al centro */
+            scroll-snap-align: center;
         }
 
         .alphabet-scroll a.active { 
@@ -143,7 +143,7 @@
 
         .movie-card { 
             background: var(--card); border-radius: 8px; border: 1px solid #222; 
-            overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; scroll-margin-top: 20px; 
+            overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; scroll-margin-top: 100px; 
         }
         .movie-card:hover { transform: translateY(-5px); border-color: var(--red); }
         .poster-link { width: 100%; height: 260px; display: block; background: #000; }
@@ -195,6 +195,7 @@
 
 <script>
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTxeOe2GVH5Q0jvme7EaLmsX7aaIS4JQKkcykMrkXnICVExo__fgjeKwRgUDp8qw2T6OKrqoV6Ar-AI/pub?output=csv';
+    let isAutoScrolling = false;
 
     window.onload = fetchData;
 
@@ -224,11 +225,25 @@
         fullAlpha.forEach(letter => {
             const a = document.createElement('a');
             a.innerText = letter;
+            a.setAttribute('data-letter', letter);
             a.onclick = (e) => {
                 e.preventDefault();
+                isAutoScrolling = true;
                 const target = document.getElementById(`letter-${letter}`);
-                if(target) target.scrollIntoView({behavior: "smooth"});
-                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                if(target) {
+                    const offset = 20;
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = target.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+                updateActiveLetter(letter);
+                setTimeout(() => { isAutoScrolling = false; }, 1000);
             };
             alphaMenu.appendChild(a);
         });
@@ -257,6 +272,7 @@
             card.className = 'movie-card';
             if (!assignedLetters.has(letterId)) {
                 card.id = `letter-${letterId}`;
+                card.classList.add('letter-anchor');
                 assignedLetters.add(letterId);
             }
             card.setAttribute('data-search', `${f.title} ${f.year} ${f.res}`.toLowerCase());
@@ -281,59 +297,57 @@
         });
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
-        
         initHoverScroll(alphaMenu);
+    }
 
-        // Effetto lettera attiva centrata
-        alphaMenu.addEventListener('scroll', () => {
-            const links = alphaMenu.querySelectorAll('a');
-            const menuRect = alphaMenu.getBoundingClientRect();
-            const center = menuRect.left + (menuRect.width / 2);
-            
-            links.forEach(a => {
-                const rect = a.getBoundingClientRect();
-                const aCenter = rect.left + (rect.width / 2);
-                const dist = Math.abs(center - aCenter);
-                // Soglia di attivazione per la lettera gialla al centro
-                a.classList.toggle('active', dist < 30);
-            });
+    function updateActiveLetter(letter) {
+        const alphaMenu = document.getElementById('alphabetMenu');
+        const links = alphaMenu.querySelectorAll('a');
+        links.forEach(a => {
+            if(a.getAttribute('data-letter') === letter) {
+                a.classList.add('active');
+                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            } else {
+                a.classList.remove('active');
+            }
+        });
+    }
+
+    function syncAlphabetWithScroll() {
+        if (isAutoScrolling) return;
+
+        const anchors = document.querySelectorAll('.letter-anchor');
+        let currentLetter = "";
+
+        anchors.forEach(anchor => {
+            const rect = anchor.getBoundingClientRect();
+            // Se la sezione è vicina alla parte superiore del viewport
+            if (rect.top <= 150) {
+                currentLetter = anchor.id.replace('letter-', '');
+            }
         });
 
-        // Abilita scorrimento orizzontale con rotellina mouse
-        alphaMenu.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            alphaMenu.scrollLeft += e.deltaY;
-        });
-
-        setTimeout(() => alphaMenu.dispatchEvent(new Event('scroll')), 100);
+        if (currentLetter) {
+            updateActiveLetter(currentLetter);
+        }
     }
 
     function initHoverScroll(el) {
         let scrollSpeed = 0;
         let animationFrame;
-
         const animate = () => {
-            if (scrollSpeed !== 0) {
-                el.scrollLeft += scrollSpeed;
-            }
+            if (scrollSpeed !== 0) el.scrollLeft += scrollSpeed;
             animationFrame = requestAnimationFrame(animate);
         };
-
         el.addEventListener('mousemove', (e) => {
             const rect = el.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
-            const edge = 100; // Pixel dai bordi per attivare scorrimento automatico
-
-            if (x < edge) {
-                scrollSpeed = -((edge - x) / edge) * 15;
-            } else if (x > width - edge) {
-                scrollSpeed = ((x - (width - edge)) / edge) * 15;
-            } else {
-                scrollSpeed = 0;
-            }
+            const edge = 100;
+            if (x < edge) scrollSpeed = -((edge - x) / edge) * 15;
+            else if (x > width - edge) scrollSpeed = ((x - (width - edge)) / edge) * 15;
+            else scrollSpeed = 0;
         });
-
         el.addEventListener('mouseleave', () => scrollSpeed = 0);
         animate();
     }
@@ -369,6 +383,8 @@
         const btn = document.getElementById("backToTop");
         if (window.scrollY > 300) btn.classList.add("show");
         else btn.classList.remove("show");
+        
+        syncAlphabetWithScroll();
     };
 </script>
 </body>
