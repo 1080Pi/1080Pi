@@ -85,13 +85,15 @@
         }
         .alphabet-container:active { cursor: grabbing; }
 
+        /* Mirino centrale visivo (opzionale, rimosso per pulizia ma la logica resta) */
+        
         .alphabet-scroll {
             display: flex; 
             overflow-x: auto; 
             width: 100%; 
             height: 100%; 
             align-items: center;
-            padding: 0 50%; 
+            padding: 0 50%; /* Padding per permettere alle lettere estreme di arrivare al centro */
             scrollbar-width: none; 
             -ms-overflow-style: none;
             scroll-snap-type: x mandatory;
@@ -108,7 +110,7 @@
             font-family: 'Oswald'; 
             font-size: 16px; 
             font-weight: bold;
-            transition: all 0.2s ease; 
+            transition: color 0.2s, transform 0.2s, font-size 0.2s; 
             white-space: nowrap; 
             display: inline-block;
             cursor: pointer;
@@ -116,13 +118,15 @@
             user-select: none;
         }
 
-        .alphabet-scroll a.active { 
-            color: var(--gold); 
-            font-size: 20px; 
-            transform: scale(1.2); 
-            margin: 0 20px; 
+        /* Classe per la lettera centrale */
+        .alphabet-scroll a.is-center {
+            color: var(--gold) !important;
+            font-size: 24px;
+            transform: scale(1.3);
+            opacity: 1;
         }
-/* RICERCA */
+
+        /* RICERCA */
         .controls { 
             width: 100%; 
             max-width: 320px; 
@@ -239,16 +243,15 @@
                     const elementRect = target.getBoundingClientRect().top;
                     const elementPosition = elementRect - bodyRect;
                     const offsetPosition = elementPosition - offset;
-
                     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
                 }
-                updateActiveLetter(letter);
+                // Centra la lettera cliccata
+                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 setTimeout(() => { isAutoScrolling = false; }, 1000);
             };
             alphaMenu.appendChild(a);
         });
 
-        // Parsing CSV e rendering card (logica originale mantenuta)
         const rows = raw.split(/\r?\n/).filter(r => r.trim() !== "");
         let movies = [];
         let assignedLetters = new Set();
@@ -299,95 +302,61 @@
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
         initAlphabetInteractions(alphaMenu);
+        highlightCentralLetter(); // Inizializza la prima lettera
     }
 
-    function updateActiveLetter(letter) {
-        const alphaMenu = document.getElementById('alphabetMenu');
-        const links = alphaMenu.querySelectorAll('a');
-        links.forEach(a => {
-            if(a.getAttribute('data-letter') === letter) {
-                a.classList.add('active');
-                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            } else {
-                a.classList.remove('active');
+    // Funzione cruciale: evidenzia la lettera più vicina al centro della barra
+    function highlightCentralLetter() {
+        const menu = document.getElementById('alphabetMenu');
+        const links = menu.querySelectorAll('a');
+        const menuRect = menu.getBoundingClientRect();
+        const centerX = menuRect.left + menuRect.width / 2;
+
+        let closestLink = null;
+        let minDistance = Infinity;
+
+        links.forEach(link => {
+            const linkRect = link.getBoundingClientRect();
+            const linkCenter = linkRect.left + linkRect.width / 2;
+            const distance = Math.abs(centerX - linkCenter);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestLink = link;
             }
+            link.classList.remove('is-center');
         });
+
+        if (closestLink) {
+            closestLink.classList.add('is-center');
+        }
     }
 
-    function syncAlphabetWithScroll() {
-        if (isAutoScrolling) return;
-        const anchors = document.querySelectorAll('.letter-anchor');
-        let currentLetter = "";
-        anchors.forEach(anchor => {
-            const rect = anchor.getBoundingClientRect();
-            if (rect.top <= 150) currentLetter = anchor.id.replace('letter-', '');
-        });
-        if (currentLetter) updateActiveLetter(currentLetter);
-    }
-
-    // NUOVA GESTIONE INTERAZIONI BARRA (HOVER + DRAG)
     function initAlphabetInteractions(el) {
-        let scrollSpeed = 0;
-        let animationFrame;
         let isDown = false;
         let startX;
         let scrollLeft;
 
-        // 1. Logica Hover (Scorrimento automatico ai bordi)
-        const animate = () => {
-            if (scrollSpeed !== 0 && !isDown) {
-                el.scrollLeft += scrollSpeed;
-            }
-            animationFrame = requestAnimationFrame(animate);
-        };
+        // Listener per scorrimento (Mouse e Touch)
+        el.addEventListener('scroll', highlightCentralLetter);
 
-        el.addEventListener('mousemove', (e) => {
-            if (isDown) return;
-            const rect = el.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const edgeThreshold = 80; // Zona di attivazione ai bordi
-
-            if (x < edgeThreshold) {
-                // Più vicino al bordo sinistro = più veloce
-                scrollSpeed = -((edgeThreshold - x) / edgeThreshold) * 12;
-            } else if (x > width - edgeThreshold) {
-                // Più vicino al bordo destro = più veloce
-                scrollSpeed = ((x - (width - edgeThreshold)) / edgeThreshold) * 12;
-            } else {
-                scrollSpeed = 0;
-            }
-        });
-
-        el.addEventListener('mouseleave', () => {
-            scrollSpeed = 0;
-            isDown = false;
-        });
-
-        // 2. Logica Drag (Trascinamento con mouse)
         el.addEventListener('mousedown', (e) => {
             isDown = true;
+            el.classList.add('active');
             startX = e.pageX - el.offsetLeft;
             scrollLeft = el.scrollLeft;
-            scrollSpeed = 0;
         });
-
-        window.addEventListener('mouseup', () => {
-            isDown = false;
-        });
-
+        el.addEventListener('mouseleave', () => { isDown = false; });
+        el.addEventListener('mouseup', () => { isDown = false; });
         el.addEventListener('mousemove', (e) => {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - el.offsetLeft;
-            const walk = (x - startX) * 2; // Moltiplicatore velocità trascinamento
+            const walk = (x - startX) * 2;
             el.scrollLeft = scrollLeft - walk;
         });
-
-        animate();
     }
 
-    // Utility functions originali
     function fixArticle(title) {
         if (!title) return "";
         const match = title.match(/\[(.*?)\]/);
@@ -419,7 +388,6 @@
         const btn = document.getElementById("backToTop");
         if (window.scrollY > 300) btn.classList.add("show");
         else btn.classList.remove("show");
-        syncAlphabetWithScroll();
     };
 </script>
 </body>
