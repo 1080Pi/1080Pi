@@ -32,7 +32,6 @@
             scroll-behavior: smooth; 
         }
         
-        /* HEADER */
         .header { 
             display: flex; 
             flex-direction: column; 
@@ -55,7 +54,6 @@
             50% { transform: scale(1.15); filter: brightness(1.3); }
         }
 
-        /* DOCK CONTROLLI */
         .bottom-controls {
             position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
             display: inline-flex; align-items: center; justify-content: center;
@@ -85,15 +83,13 @@
         }
         .alphabet-container:active { cursor: grabbing; }
 
-        /* Mirino centrale visivo (opzionale, rimosso per pulizia ma la logica resta) */
-        
         .alphabet-scroll {
             display: flex; 
             overflow-x: auto; 
             width: 100%; 
             height: 100%; 
             align-items: center;
-            padding: 0 50%; /* Padding per permettere alle lettere estreme di arrivare al centro */
+            padding: 0 50%; 
             scrollbar-width: none; 
             -ms-overflow-style: none;
             scroll-snap-type: x mandatory;
@@ -118,22 +114,17 @@
             user-select: none;
         }
 
-        /* Classe per la lettera centrale */
-        .alphabet-scroll a.is-center {
+        /* LETTERA CENTRALE EVIDENZIATA */
+        .alphabet-scroll a.active-center {
             color: var(--gold) !important;
             font-size: 24px;
             transform: scale(1.3);
             opacity: 1;
         }
 
-        /* RICERCA */
         .controls { 
-            width: 100%; 
-            max-width: 320px; 
-            margin: 10px auto; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            width: 100%; max-width: 320px; margin: 10px auto; 
+            display: flex; flex-direction: column; align-items: center;
         }
 
         #searchInput { 
@@ -144,7 +135,6 @@
 
         #counter { color: var(--gold); font-family: 'Oswald'; margin-top: 8px; font-size: 0.85rem; }
 
-        /* GRIGLIA E CARD */
         .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 10px 150px 10px; }
         @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
 
@@ -245,8 +235,7 @@
                     const offsetPosition = elementPosition - offset;
                     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
                 }
-                // Centra la lettera cliccata
-                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                updateActiveLetterVisual(letter);
                 setTimeout(() => { isAutoScrolling = false; }, 1000);
             };
             alphaMenu.appendChild(a);
@@ -302,11 +291,25 @@
 
         document.getElementById('counter').innerText = movies.length + " FILM AGGIORNATI";
         initAlphabetInteractions(alphaMenu);
-        highlightCentralLetter(); // Inizializza la prima lettera
     }
 
-    // Funzione cruciale: evidenzia la lettera più vicina al centro della barra
-    function highlightCentralLetter() {
+    // Funzione per aggiornare la lettera gialla e centrarla
+    function updateActiveLetterVisual(letter) {
+        const menu = document.getElementById('alphabetMenu');
+        const links = menu.querySelectorAll('a');
+        links.forEach(a => {
+            if(a.getAttribute('data-letter') === letter) {
+                a.classList.add('active-center');
+                a.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            } else {
+                a.classList.remove('active-center');
+            }
+        });
+    }
+
+    // Funzione che rileva la lettera più vicina al centro durante lo scroll MANUALE della barra
+    function highlightByCenter() {
+        if (isAutoScrolling) return;
         const menu = document.getElementById('alphabetMenu');
         const links = menu.querySelectorAll('a');
         const menuRect = menu.getBoundingClientRect();
@@ -319,35 +322,40 @@
             const linkRect = link.getBoundingClientRect();
             const linkCenter = linkRect.left + linkRect.width / 2;
             const distance = Math.abs(centerX - linkCenter);
-
             if (distance < minDistance) {
                 minDistance = distance;
                 closestLink = link;
             }
-            link.classList.remove('is-center');
+            link.classList.remove('active-center');
         });
+        if (closestLink) closestLink.classList.add('active-center');
+    }
 
-        if (closestLink) {
-            closestLink.classList.add('is-center');
-        }
+    // Funzione che sincronizza la barra con lo scroll della PAGINA
+    function syncWithPageScroll() {
+        if (isAutoScrolling) return;
+        const anchors = document.querySelectorAll('.letter-anchor');
+        let currentLetter = "";
+        anchors.forEach(anchor => {
+            const rect = anchor.getBoundingClientRect();
+            if (rect.top <= 150) currentLetter = anchor.id.replace('letter-', '');
+        });
+        if (currentLetter) updateActiveLetterVisual(currentLetter);
     }
 
     function initAlphabetInteractions(el) {
         let isDown = false;
-        let startX;
-        let scrollLeft;
+        let startX, scrollLeft;
 
-        // Listener per scorrimento (Mouse e Touch)
-        el.addEventListener('scroll', highlightCentralLetter);
+        el.addEventListener('scroll', highlightByCenter);
 
         el.addEventListener('mousedown', (e) => {
             isDown = true;
-            el.classList.add('active');
             startX = e.pageX - el.offsetLeft;
             scrollLeft = el.scrollLeft;
         });
-        el.addEventListener('mouseleave', () => { isDown = false; });
-        el.addEventListener('mouseup', () => { isDown = false; });
+        el.addEventListener('mouseleave', () => isDown = false);
+        el.addEventListener('mouseup', () => isDown = false);
         el.addEventListener('mousemove', (e) => {
             if (!isDown) return;
             e.preventDefault();
@@ -388,6 +396,7 @@
         const btn = document.getElementById("backToTop");
         if (window.scrollY > 300) btn.classList.add("show");
         else btn.classList.remove("show");
+        syncWithPageScroll();
     };
 </script>
 </body>
