@@ -145,7 +145,6 @@
         .poster-img { width: 100%; height: 100%; object-fit: cover; }
         .info { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .title-group { font-family: 'Oswald'; font-size: 0.95rem; color: #fff; }
-        .genre-label { color: #888; font-size: 0.7rem; display: block; margin-top: 2px; text-transform: uppercase; }
         .dur-label { color: var(--gold); font-family: 'Oswald'; font-size: 0.8rem; display: block; }
         .tags-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         .badge { padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; font-family: 'Oswald'; color: #fff; text-transform: uppercase; }
@@ -273,7 +272,7 @@
                 assignedLetters.add(letterId);
             }
             
-            // AGGIUNTO GENRE NELLA RICERCA
+            // LA RICERCA INCLUDE IL GENERE (f.genre)
             card.setAttribute('data-search', `${f.title} ${f.year} ${f.res} ${f.genre}`.toLowerCase());
             
             card.innerHTML = `
@@ -283,7 +282,6 @@
                 <div class="info">
                     <div>
                         <span class="title-group">${f.title} (${f.year})</span>
-                        <span class="genre-label">${f.genre}</span>
                         <span class="dur-label">${f.dur}</span>
                     </div>
                     <div class="tags-row">
