@@ -72,7 +72,6 @@
         #backToTop { display: none; } 
         #backToTop.show { display: flex; margin-right: 10px; }
 
-        /* BARRA ALFABETICA */
         .alphabet-container {
             position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%); 
             width: 100%; max-width: 600px; height: 50px; 
@@ -114,7 +113,6 @@
             user-select: none;
         }
 
-        /* LETTERA CENTRALE EVIDENZIATA */
         .alphabet-scroll a.active-center {
             color: var(--gold) !important;
             font-size: 24px;
@@ -147,6 +145,7 @@
         .poster-img { width: 100%; height: 100%; object-fit: cover; }
         .info { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .title-group { font-family: 'Oswald'; font-size: 0.95rem; color: #fff; }
+        .genre-label { color: #888; font-size: 0.7rem; display: block; margin-top: 2px; text-transform: uppercase; }
         .dur-label { color: var(--gold); font-family: 'Oswald'; font-size: 0.8rem; display: block; }
         .tags-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         .badge { padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; font-family: 'Oswald'; color: #fff; text-transform: uppercase; }
@@ -183,7 +182,7 @@
 <div class="header">
     <h1>1080P<span>i</span></h1>
     <div class="controls">
-        <input type="text" id="searchInput" placeholder="Cerca titolo, anno, res...">
+        <input type="text" id="searchInput" placeholder="Cerca titolo, genere, anno...">
         <div id="counter">---</div>
     </div>
 </div>
@@ -251,9 +250,14 @@
             if (cols.length >= 2) {
                 movies.push({
                     title: fixArticle(cols[1]), 
-                    year: cols[2] || "", dur: formatDuration(cols[3]), 
-                    dim: cols[4] || "0", res: cols[5] || "", 
-                    hd: cols[7] || "", img: cols[8] || "", link: cols[9] || "#"
+                    year: cols[2] || "", 
+                    dur: formatDuration(cols[3]), 
+                    dim: cols[4] || "0", 
+                    res: cols[5] || "", 
+                    hd: cols[7] || "", 
+                    img: cols[8] || "", 
+                    link: cols[9] || "#",
+                    genre: cols[10] || "" // COLONNA K
                 });
             }
         });
@@ -268,7 +272,10 @@
                 card.classList.add('letter-anchor');
                 assignedLetters.add(letterId);
             }
-            card.setAttribute('data-search', `${f.title} ${f.year} ${f.res}`.toLowerCase());
+            
+            // AGGIUNTO GENRE NELLA RICERCA
+            card.setAttribute('data-search', `${f.title} ${f.year} ${f.res} ${f.genre}`.toLowerCase());
+            
             card.innerHTML = `
                 <a href="${f.link}" target="_blank" class="poster-link">
                     <img src="${f.img}" class="poster-img" loading="lazy">
@@ -276,6 +283,7 @@
                 <div class="info">
                     <div>
                         <span class="title-group">${f.title} (${f.year})</span>
+                        <span class="genre-label">${f.genre}</span>
                         <span class="dur-label">${f.dur}</span>
                     </div>
                     <div class="tags-row">
@@ -293,7 +301,6 @@
         initAlphabetInteractions(alphaMenu);
     }
 
-    // Funzione per aggiornare la lettera gialla e centrarla
     function updateActiveLetterVisual(letter) {
         const menu = document.getElementById('alphabetMenu');
         const links = menu.querySelectorAll('a');
@@ -307,7 +314,6 @@
         });
     }
 
-    // Funzione che rileva la lettera più vicina al centro durante lo scroll MANUALE della barra
     function highlightByCenter() {
         if (isAutoScrolling) return;
         const menu = document.getElementById('alphabetMenu');
@@ -331,7 +337,6 @@
         if (closestLink) closestLink.classList.add('active-center');
     }
 
-    // Funzione che sincronizza la barra con lo scroll della PAGINA
     function syncWithPageScroll() {
         if (isAutoScrolling) return;
         const anchors = document.querySelectorAll('.letter-anchor');
@@ -346,9 +351,7 @@
     function initAlphabetInteractions(el) {
         let isDown = false;
         let startX, scrollLeft;
-
         el.addEventListener('scroll', highlightByCenter);
-
         el.addEventListener('mousedown', (e) => {
             isDown = true;
             startX = e.pageX - el.offsetLeft;
